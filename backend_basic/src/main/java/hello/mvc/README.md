@@ -80,3 +80,29 @@
 
 > 개선에 있어 구조적인 부분과 내부 로직 부분을 분리하여 진행해야한다.  
 > 구조 개선을 할 때에는 로직은 건드리지말고 구조에만 먼저 개선하고 정상 동작을 확인한 후, 로직을 개선하자
+
+### Front Controller - v2
+
+#### 목표: 컨트롤러에서 뷰로 이동하는 부분의 중복을 제거, 뷰 전담 객체 도입
+
+<p align="center"><img src="../../../../../img/v2.png" width="80%"></p>
+
+1. 모든 HTTP 요청이 front controller로 들어온다
+2. URL이 매핑된 정보에서 실행할 컨트롤러를 조회한다
+3. Front controller에서 대상 컨트롤러를 호출한다
+4. 대상 컨트롤러에서는 JSP를 바로 forward하는게 아니라 View를 front controller로 반환한다
+5. front controller에서 view를 호출한다
+
+### Front Controller - v3
+
+#### 목표: 서블릿에 대한 종속성 제거 및 뷰 이름 중복 제거, 모델 전담 객체 도입
+
+<p align="center"><img src="../../../../../img/v3.png" width="80%"></p>
+
+1. 모든 HTTP 요청이 front controller로 들어온다
+2. URL이 매핑된 정보에서 실행할 컨트롤러를 조회한다
+3. Front controller에서 대상 컨트롤러를 호출한다
+4. 대상 컨트롤러에서는 JSP를 바로 forward하는게 아니라 ModelView를 front controller로 반환한다
+5. ModelView 내 뷰의 값을 가져오기 위해 viewResolver를 호출한다
+6. viewResolver에서는 view 객체를 front controller로 반환한다
+7. fornt controller에서 view를 호출한다.
