@@ -73,10 +73,10 @@
 
 <p align="center"><img src="../../../../../img/v1.png" width="80%"></p>
 
-1. 모든 HTTP 요청이 front controller로 들어온다
-2. URL이 매핑된 정보에서 실행할 컨트롤러를 조회한다
-3. Front controller에서 대상 컨트롤러를 호출한다
-4. 대상 컨트롤러에서 JSP를 forward 해준다
+모든 HTTP 요청이 front controller로 들어온다
+1. URL이 매핑된 정보에서 실행할 컨트롤러를 조회한다
+2. Front controller에서 대상 컨트롤러를 호출한다
+3. 대상 컨트롤러에서 JSP를 forward 해준다
 
 > 개선에 있어 구조적인 부분과 내부 로직 부분을 분리하여 진행해야한다.  
 > 구조 개선을 할 때에는 로직은 건드리지말고 구조에만 먼저 개선하고 정상 동작을 확인한 후, 로직을 개선하자
@@ -87,11 +87,11 @@
 
 <p align="center"><img src="../../../../../img/v2.png" width="80%"></p>
 
-1. 모든 HTTP 요청이 front controller로 들어온다
-2. URL이 매핑된 정보에서 실행할 컨트롤러를 조회한다
-3. Front controller에서 대상 컨트롤러를 호출한다
-4. 대상 컨트롤러에서는 JSP를 바로 forward하는게 아니라 View를 front controller로 반환한다
-5. front controller에서 view를 호출한다
+모든 HTTP 요청이 front controller로 들어온다
+1. URL이 매핑된 정보에서 실행할 컨트롤러를 조회한다
+2. Front controller에서 대상 컨트롤러를 호출한다
+3. 대상 컨트롤러에서는 JSP를 바로 forward하는게 아니라 View를 front controller로 반환한다
+4. front controller에서 view를 호출한다
 
 ### Front Controller - v3
 
@@ -99,10 +99,22 @@
 
 <p align="center"><img src="../../../../../img/v3.png" width="80%"></p>
 
-1. 모든 HTTP 요청이 front controller로 들어온다
-2. URL이 매핑된 정보에서 실행할 컨트롤러를 조회한다
-3. Front controller에서 대상 컨트롤러를 호출한다
-4. 대상 컨트롤러에서는 JSP를 바로 forward하는게 아니라 ModelView를 front controller로 반환한다
-5. ModelView 내 뷰의 값을 가져오기 위해 viewResolver를 호출한다
-6. viewResolver에서는 view 객체를 front controller로 반환한다
-7. fornt controller에서 view를 호출한다.
+모든 HTTP 요청이 front controller로 들어온다
+1. Front controller에서 파라미터 값을 함께 대상 컨트롤러에 전달한다
+2. 대상 컨트롤러에서는 ModelView를 front controller로 반환한다
+3. ModelView 내 뷰의 값을 가져오기 위해 viewResolver를 호출한다
+4. viewResolver에서는 view 객체를 front controller로 반환한다
+5. fornt controller에서 view를 호출한다.
+
+### Front Controller - v4
+
+#### 목표: 항상 ModelView 객체를 생성하고 반환하는 번거로움을 제거하자, 사용하기 편리한 구조로 변경
+
+<p align="center"><img src="../../../../../img/v4.png" width="80%"></p>
+
+모든 HTTP 요청이 front controller로 들어온다
+1. Front controller에서 모델 객체 생성 후, 파라미터 값을 함께 대상 컨트롤러에 전달한다
+2. 대상 컨트롤러에서는 viewName을 front controller로 반환한다
+3. 전달받은 viewName으로 물리적 주소를 가져오기 위해 viewResolver를 호출한다
+4. viewResolver에서는 view 객체를 front controller로 반환한다
+5. fornt controller에서 view를 호출한다.
