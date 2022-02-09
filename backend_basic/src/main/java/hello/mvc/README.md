@@ -118,3 +118,16 @@
 3. 전달받은 viewName으로 물리적 주소를 가져오기 위해 viewResolver를 호출한다
 4. viewResolver에서는 view 객체를 front controller로 반환한다
 5. fornt controller에서 view를 호출한다.
+
+### Front Controller - v5
+
+#### 목표: 하나의 프로젝트에서 다른 종류의 컨트롤러를 사용하고 싶다면? 유연한 구조로 변경
+
+<p align="center"><img src="../../../../../img/v5.png" width="80%"></p>
+
+1. HTTP 요청이 front controller에 들어오면, 핸들러 매핑 정보를 통해 핸들러(컨트롤러)를 조회한다
+2. Front controller에서는 핸들러를 처리할 수 있는 어댑터 목록에서 핸들러 어댑터를 조회하고 획득한다.
+3. Front controller는 핸들러 어댑터를 통해 핸들러를 호출한다.
+4. 핸들러 어댑터는 ModelView를 front controller에 반환한다.
+5. front controller는 viewResolver를 통해 view를 가져온다
+6. front controller에서 view를 호출한다.
