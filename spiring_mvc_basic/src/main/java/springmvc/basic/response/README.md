@@ -86,3 +86,38 @@
   - `HttpEntity(ResponseEntity)`
   - Http 요청의 Accept 미디어 타입을 지원하는가!
     - 정확하게는 `@RequestMapping의 produces`
+
+## RequestMapping Handler Adapter
+
+[Message Converter](../response/README.md)는 어디쯤에서 동작할까?
+
+<p align="center"><img src="../../../../../../../backend_basic/img/v5.png" width="80%"></p>
+
+- `@RequestMapping`을 처리하는 핸들러 어댑터인 `RequestMappingHandlerAdapter`에 집중할 필요가 있다
+
+### Argument Resolver
+
+<p align="center"><img src="../../../../../../img/RequestMappingHandlerAdapter.png" width="80%"></p>
+
+- 어노테이션 기반 컨트롤러는 다양한 파라미터를 사용 가능하다
+    - `HttpServletRequest`, `Model`, `@RequestParam`, `@ModelAttribute` 등등
+- `RequestMappingHandlerAdpater`가 `Argument Resolver`를 호출해서 컨트롤러에서 필요한 다양한 값을 생성한다.
+- 이렇게 해서 모든 파라미터의 값(객체)들이 준비되면 `RequestMappingHandlerAdpater`가 컨트롤러를 호출하면서 생성된 값을 컨트롤러에 넘겨준다
+- 즉, 컨트롤러의 파라미터, 어노테이션 정보를 기반으로 전달 데이터를 생성한다
+
+### Return Value Handler
+
+- `HandlerMethodReturnValueHandler`
+- `ArgumentResolver`와 비슷한데, 이 핸들러는 응답 값을 변환하고 처리해준다
+- 즉, 컨트롤러의 반환 값을 변환해주는 핸들러
+
+### 그래서 MessageConverter는 어디에?
+
+`MessageConverter`는 결국 `@RequestBody`나 `@ResponseBody` 컨트롤러가 필요로하는 파라미터 값에 사용된다.
+즉, `ArgumentResolver`와 `ReturnValueHandler`에서 동작한다는 말이다.
+
+- 요청의 경우
+    - `@RequestBody`나 `HttpEntity`등을 처리하는 `ArgumentResolver`가 각각 존재한다.
+    - 이런 `ArgumentResolver`들이 `MessageConverter`를 사용해서 필요한 객체를 생성하게 된다.
+- 응답의 경우
+    -  `@ResponseBody`나 `HttpEntity`등을 처리하는 `ReturnValueHandler`가 각각 존재한다.
