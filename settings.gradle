@@ -1,5 +1,5 @@
 rootProject.name = 'spring_mvc'
 include 'backend_basic'
 include 'spring_mvc_basic'
-//include 'message'
+include 'message'
 
