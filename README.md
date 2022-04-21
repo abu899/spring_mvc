@@ -9,3 +9,4 @@
    - [Response and Message Converter](spring_mvc_basic/src/main/java/springmvc/basic/response/README.md)
 4. Spring MVC
    - [Message and i18n](message/README.md)
+   - [Validation](validation/README.md)
