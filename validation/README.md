@@ -59,3 +59,57 @@
 - 타임리프의 사용자 입력 값 유지
   - `th:field="*{price}` 
   - `th:field`가 정상 동작에서는 모델 객체의 값을 사용하지만, 오류가 발생하면 `FieldError`에서 보관한 값을 사용한다!!
+
+## 오류코드와 메시지 처리
+
+에러 메시지를 일관성있게 관리하는 것이 목표!
+
+### v1
+
+- `FieldError`, `ObjectError`의 파라미터인 `codes`와 `argument`를 사용
+  - `codes`: 메시지 코드를 배열로 전달, 순서대로 매칭해서 처음 매칭되는 메시지가 사용된다
+  - `argument`: 메시지 내에 치환할 값을 전달한다
+- 메시지와 국제화에 사용한 것과 같은 방법으로 진행하게 된다
+  - `errors.properties`
+- 이 또한 국제화 기능 사용가능하다!
+
+### v2
+
+`FieldError`, `ObjectError`는 사용하기 번거로우니 좀 더 자동화해서 사용할 수 있는 방법을 찾아보자
+
+- `BindingResult`는 target이 되는 객체 바로 뒤에 온다.
+  - 즉 `BindingResult`는 본인이 검증할 객체에 대해 이미 알고있다는 점을 인식하고 있자
+  - `BindingResult`의 `getObjectName()`을 해보면 target의 이름이 출력됨
+- `bindingReuslt`의 `rejectValue()`과 `reject()`을 활용해보자
+  - `rejectValue`와 `reject`가 결국 `FieldError`, `ObjectError`를 생성해준다
+  - 파라미터로 들어가는 `errorCode`는 메시지에 등록된 코드가 아니다. (`messageResolver`를 위한 에러 코드)
+
+### 어떤식으로 오류코드를 설계할 것인가?
+
+오류 코드는 범용적으로 만들거나 자세하게 만들 수 있다
+```text
+required=필수 값 입니다 // 범용
+required.item.itemName= 상품 이름은 필수 값 입니다 // 상세
+```
+범용성이 오르면 세밀한 설명이 불가능하고, 상세 설명으로 하면 범용성이 떨어진다. 그렇다면 어떻게 하는게 좋을까?
+
+- 범용적인 설명을 정의한다
+- 상세적인 설명이 필요한 경우, 객체 이름과 필드 명을 조합한 단계를 둬서 이를 지원한다
+- 하지만 우선순위는 상세 설명이 높고 범용적인 설명이 차순
+
+**MessageCodesResolver**
+
+- 검증 오류 코드로 메시지 코드를 생성한다
+  - 즉, `errorCode`, `objectName`, `fieldName`을 토대로  message code들을 생성한다.
+- 생성 규칙
+  - 객체 오류
+    1. errorCode + "." + object name -> (`required.item`)
+    2. errorCode -> (`required`)
+  - 필드 오류
+    1. errorCode + "." + object name + "." + field -> (`required.item.itemName`)
+    2. errorCode + "." + field -> (`required.itemName`)
+    3. errorCode + "." + field type -> (`required.String`)
+    4. errorCode -> (`required`)
+- `BindingResult`의 `rejectValue`는 `MessageCodesResolver`를 통해 받은 message code들로 `FieldError` 및 `ObjectError`를 생성한다
+  - `new FieldError("item", "quantity", item.getQuantity(), false, MessageCodesResolver.messageCodes, null)`
+- 타임리프에서는 `th:error`를 통해 렌더링하고, 생성된 오류 메시지 코드를 순서대로 돌아가면서 메시지를 찾는다.
