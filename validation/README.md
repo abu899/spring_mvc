@@ -1,8 +1,15 @@
 # Validation
 
-<p align="center"><img src="/img/1.png" width="80%"></p>
+## 클라이언트 검증 vs 서버 검증
+
+- 클라이언트 검증은 조작할 수 있으므로 보안에 취약
+- 서버만으로 검증하면, 즉각적인 고객 사용성이 떨어진다
+- 두개를 적절히 섞어서 사용해야하지만, 마지막에 `서버 검증은 필수`
 
 ## V1
+
+<p align="center"><img src="/img/1.png" width="80%"></p>
+
 
 - 검증 에러를 저장하기 위해 Map에 에러와 에러메시지를 저장
 - 실패하면 입력 폼으로 돌아가면서 model에 errors map을 넣어 뷰 템플릿에 보낸다
@@ -64,7 +71,7 @@
 
 에러 메시지를 일관성있게 관리하는 것이 목표!
 
-### v1
+## V3
 
 - `FieldError`, `ObjectError`의 파라미터인 `codes`와 `argument`를 사용
   - `codes`: 메시지 코드를 배열로 전달, 순서대로 매칭해서 처음 매칭되는 메시지가 사용된다
@@ -73,7 +80,7 @@
   - `errors.properties`
 - 이 또한 국제화 기능 사용가능하다!
 
-### v2
+## V4
 
 `FieldError`, `ObjectError`는 사용하기 번거로우니 좀 더 자동화해서 사용할 수 있는 방법을 찾아보자
 
@@ -113,3 +120,32 @@ required.item.itemName= 상품 이름은 필수 값 입니다 // 상세
 - `BindingResult`의 `rejectValue`는 `MessageCodesResolver`를 통해 받은 message code들로 `FieldError` 및 `ObjectError`를 생성한다
   - `new FieldError("item", "quantity", item.getQuantity(), false, MessageCodesResolver.messageCodes, null)`
 - 타임리프에서는 `th:error`를 통해 렌더링하고, 생성된 오류 메시지 코드를 순서대로 돌아가면서 메시지를 찾는다.
+
+### 스프링이 직접 만든 오류메시지 처리
+
+검증 오류 코드는 크게 두가지로 나눌 수 있다
+
+1. 개발자가 직접 설정한 오류코드
+   - `rejectValue`나 `reject`를 사용하여 직접 호출
+2. 스프링이 직접 검증 오류에 추가한 경우
+   - 주로 타입 정보가 맞지 않는 경우
+   
+2번과 같이 타입정보가 맞지 않는 경우 다음과 같은 4가지 메시지 코드가 `MessageCodesResolver`를 통해 생성된다
+
+- `typeMismatch.item.price`
+- `typeMismatch.price`
+- `typeMismatch.java.lang.Integer`
+- `typeMismatch`
+- 위와 같이 스프링이 만든 `typeMismatch` 에러 코드들은 `defaultValues`에 의해 출력된다
+  - `errors.properties`에 `typeMismatch`를 추가하면 내가 만든 에러 메시지를 넣을 수 있다
+
+## V5
+
+`Validator`를 `@ComponentScan`으로 스프링 빈으로 주입 후 기존 개발자가 개발한 코드를 분리한다. 
+- `supports`: 해당 검증기를 지원하는 여부 확인
+- `validate`: 실제 검증 코드
+- 그런데 과연 반드시 `Validator`를 직접 실행해야할까?
+  - `Validator`를 사용하면 스프링의 추가적인 도움을 받을 수 있다 (`WebDataBinder`)
+  - `@InitBinder`를 통해 `WebDataBinder`를 파라미터로 받고 원하는 `Validator`를 넣어준다
+  - 해당 컨트롤러 내에서는 내가 설정한 `Validator`가 `@Validated`가 있는 객체에 대해선 검증이 동작한다.
+  - 글로벌 설정이 가능하나 `BeanValidation`이 자동으로 등록되지 않으므로, 직접 글로벌 설정을 하는 경우는 드믈다.
