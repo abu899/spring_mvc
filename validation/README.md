@@ -149,3 +149,40 @@ required.item.itemName= 상품 이름은 필수 값 입니다 // 상세
   - `@InitBinder`를 통해 `WebDataBinder`를 파라미터로 받고 원하는 `Validator`를 넣어준다
   - 해당 컨트롤러 내에서는 내가 설정한 `Validator`가 `@Validated`가 있는 객체에 대해선 검증이 동작한다.
   - 글로벌 설정이 가능하나 `BeanValidation`이 자동으로 등록되지 않으므로, 직접 글로벌 설정을 하는 경우는 드믈다.
+
+## Bean Validation
+
+검증 로직을 매번 지금처럼 작성하는 것은 상당히 번거롭다. 
+또한 일반적인 필드에 대한 검증 로직은 대부분 값이 있는지 없는지, 특정 범위에 들어오는지에 대한 경우가 다수를 차지한다.
+이를 좀 더 간단하게 어노테이션으로 표현하는 게 `Bean Validation`
+
+- `Bean Validation`은 특정한 구현체가 아닌, 검증을 위한 어노테이션과 여러 인터페이스의 모음
+- `Bean Validation`은 java 표준으로 이를 구현한 구현체가 여러개 존재하며, 일반적으로 사용하는 구현체는 `Hibernate Validator`이다
+- 스프링의 경우 `Bean Validator`를 직접 호출해서 사용하는 것이 아닌, 통합에 의해 사용할 수 있게 되어있다.
+  - `@Validated`를 사용하면 자동으로 적용된다
+- 스프링 부트는 자동으로 글로벌 validator로 등록한다
+  - `LocalValidatorFactoryBean`을 글로벌 validator로 등록한다.
+  - `@NotNull`같은 어노테이션을 보고 검증을 수행한다
+  
+### Bean Validation - Error Code
+
+`Bean Validation`을 적용하고 오류 메시지를 변경하고 싶을 때!
+
+- `bindingResult`에 등록된 검증 오류 코드를 보면, 오류 코드는 어노테이션 이름으로 등록된다
+  - 마치 `typeMismatch`
+  - `@NotBlank`의 경우 `NotBlank.item.itemName`, `NotBlank.itemName`, `NotBlank.java.lang.String`, `NotBlank`
+- 따라서 메시지를 위의 규칙에 따라 등록하면 된다!
+- `Bean Validation`이 메시지를 찾는 순서
+  1. 생성된 메시지 코드 순서대로 `messageSource`에서 찾기
+  2. 어노테이션의 `message` 속성 사용
+  3. 라이브러리가 제공하는 기본 값 사용
+
+### Bean Validation - Object Error
+
+`Bean Validation`에서 필드에 어노테이션 형태로 들어가게 되는데 `Object Error`는 어떻게 처리될까?
+
+- `@ScriptAssert`
+  - `@ScriptAssert(lang = "javascript", script = "_this.price * _this.quantity >= 10000")`
+- 하지만 실제 사용해보면 제약이 많고 사용이 복잡하다
+  - 실무에서는 검증 기능이 해당 객체의 범위를 넘어석는 경우가 존재하게 되면 대응이 어렵다
+- 따라서 `ObjectError`의 경우 코드로 작성하는 것이 보다 간편.
