@@ -77,3 +77,50 @@ class test {
 - 세션 조회
 - 세션 만료
   - 클라이언트가 요청한 sessionId 쿠키 값으로 세션 저장소에서 제거
+
+### Servlet Http Session
+
+서블릿이 제공하는 `HttpSession`도 결국 우리가 만든 `SessionManager`와 같은 방식으로 동작한다
+
+- `HttpServletRequest.getSession()`
+  - 세션이 있으면 기존 세션 반환
+  - 세션이 없다면 새로운 세션을 생성해서 반환
+  - `getSession`의 파라미터가 `false`라면 세션이 없을 때는 새로운 세션을 생성하지 않는다.
+  - `false`는 기존 세션으로 객체를 찾거나 `invalidate`할때 사용
+- 스프링은 세션을 편리하게 사용하기 위한 `@SessionAttribute` 어노테이션이 존재
+  - 세션을 찾아올 때 사용하면 되며, 세션을 새로 생성하지 않는다
+
+### TrackingModes
+
+`HttpSession`을 통해 로그인을 진행하게 되면 url뒤에 세션 아이디가 나타나는 걸 확인할 수 있다.
+
+- 웹브라우저가 쿠키를 지원하지 않을 때 쿠키 대신 URL을 통해 세션을 유지하는 방법
+  - 서버 입장에서는 쿠키를 지원하는지 알 수 없기에 쿠키 값도 전달하고 `jsessionId`도 함께 전달
+- 하지만, 이 방법을 사용하기 위해선 세션을 유지하는 모든 url 뒤에 동일한 세션 아이디를 붙여줘야한다.
+- 타임리프 같은 템플릿 엔진을 통해 자동으로 포함시킬 수 있다
+- URL 전달 방식을 끄고 쿠키를 통해서만 세션을 유지하고자 한다면 옵션을 넣어주면 된다.
+  - `server.servlet.session.tracking-modes=cookie`
+
+### 세션 정보와 타임아웃
+
+- 세션 정보
+  - `sessionId`
+  - `maxInactiveInterval` : 세션 유효시간(초)
+  - `creationTime` : 세션 생성일시
+  - `lastAccessedTime` 
+    - 세션과 연결된 사용자가 최근에 접근한 시간
+    - 클라이언트에서 서버로 `sessionId(JSESSIONID)`를 요청한 경우에 갱신
+  - `isNew` : 새로 생성된 세션인가
+- 세션 타임아웃
+  - 기본적으로 세션은 사용자가 직접 `session.invalidate()`가 호출되는 경우 삭제
+  - 하지만 HTTP는 **비연결성**이므로 서버 입장에서는 클라이언트가 종료된건지 아닌지 알 수 없음
+    - 즉 서버입장에서 세션을 삭제해야되는지 아닌지 알 수 없음.
+    - 세션은 기본적으로 메모리에 생성되므로, 사용자가 늘어날 수록 통해 세션이 지속적으로 증가해서 문제가 생길 수 있음
+  - 사용자가 서버에 최근 요청한 시간(`lastAccessedTime`)을 기준으로 30분 정도를 유지해주는 것이 대안이 될 수 있음
+    - `HttpSession`은 이 방식을 사용한다
+  - 설정
+    - 글로벌 설정: `server.servlet.session.timeout`
+    - 세션 단위로 설정: `session.setMaxInactiveInterval(1800)`
+
+실무에서 주의할 점은 세션에는 최소한의 데이터를 보관해야한다는 점이다.
+앞서 말햇듯이 보관한 데이터 용량 * 사용자 수로 메모리가 급격하게 늘어나서 장애로 이어질 수 있다.
