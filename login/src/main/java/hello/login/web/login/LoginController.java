@@ -12,6 +12,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
@@ -31,7 +32,7 @@ public class LoginController {
         return "login/loginForm";
     }
 
-//    @PostMapping("login")
+    //    @PostMapping("login")
     public String login(@Validated @ModelAttribute LoginForm form, BindingResult bindingResult
             , HttpServletResponse response) {
         if (bindingResult.hasErrors()) {
@@ -53,7 +54,7 @@ public class LoginController {
         return "redirect:/";
     }
 
-//    @PostMapping("login")
+    //    @PostMapping("login")
     public String loginV2(@Validated @ModelAttribute LoginForm form, BindingResult bindingResult
             , HttpServletResponse response) {
         if (bindingResult.hasErrors()) {
@@ -74,7 +75,7 @@ public class LoginController {
         return "redirect:/";
     }
 
-    @PostMapping("login")
+    //    @PostMapping("login")
     public String loginV3(@Validated @ModelAttribute LoginForm form, BindingResult bindingResult
             , HttpServletRequest request) {
         if (bindingResult.hasErrors()) {
@@ -101,13 +102,41 @@ public class LoginController {
         return "redirect:/";
     }
 
-//    @PostMapping("/logout")
+    @PostMapping("login")
+    public String loginV4(@Validated @ModelAttribute LoginForm form, BindingResult bindingResult
+            , @RequestParam(defaultValue = "/") String redirectURL
+            , HttpServletRequest request) {
+        if (bindingResult.hasErrors()) {
+            return "login/loginForm";
+        }
+
+        Member member = loginService.login(form.getLoginId(), form.getPassword());
+        if (null == member) {
+            bindingResult.reject("loginFail", "아이디 또는 비밀번호 오류!");
+            log.info("error = {} ", bindingResult);
+            return "login/loginForm";
+        }
+
+        // 로그인 성공
+        // 세션
+//        sessionManager.createSession(member, response);
+        // 세션 가져오기
+        HttpSession session = request.getSession();
+
+        // 세션에 member 정보 보관
+        session.setAttribute(SessionConst.LOGIN_MEMBER, member);
+
+
+        return "redirect:" + redirectURL;
+    }
+
+    //    @PostMapping("/logout")
     public String logout(HttpServletResponse response) {
         expireCookie(response, "memberId");
         return "redirect:/";
     }
 
-//    @PostMapping("/logout")
+    //    @PostMapping("/logout")
     public String logoutV2(HttpServletRequest request) {
         sessionManager.expire(request);
         return "redirect:/";
