@@ -150,3 +150,43 @@ HTTP 요청 -> WAS -> 필터 -> 서블릿 -> 컨트롤러
 - 여기서의 서블릿은 `DispatcherServlet`으로 생각하면 된다.
 - 필터 체인
   - 필터는 체인으로 구성될 수 있고, 여러개의 필터를 체인으로 이어붙여 적용 후 다음 프로세스를 진행할수도 있다
+
+### 스프링 인터셉터
+
+서블릿 필터와 같이 웹과 관련된 공통 관심 사항을 해결할 수 있는 기술이지만, 적용되는 순서와 범위, 사용방법이 다르다
+```text
+HTTP 요청 -> WAS -> 필터 -> 서블릿 -> 스프링 인터셉터 -> 컨트롤러
+```
+- 스프링이 제공하는 기능이기 때문에 디스패처 서블릿 이후에 등장한다
+  - 왜냐면 스프링 MVC의 시작이 디스패처 서블릿이기 때문
+- URL패턴 또한 적용가능한데, 서블릿 URL보다 매우 정밀하게 설정할 수 있다
+  - [PathPattern](https://docs.spring.io/spring-framework/docs/current/javadoc-api/org/springframework/web/util/pattern/PathPattern.html)
+- 스프링 인터셉터 체인
+- 서블릿 필터와 호출되는 순서만 다르지 기능은 같지만 보다 편리하고 정교하지만 다양한 기능을 제공한다
+  - 서블릿 필터의 경우 단순하게 `doFilter()`만을 제공
+  - 인터셉터의 경우, 컨트롤러 호출 전(`preHandle`), 호출 후(`postHandle`), 요청 완료 이후(`afterCompletion`)과 같이 세분화 되어있다.
+  - 또한 `request`, `response` 뿐만 아니라 어떤 컨트롤러(`handle`)가 호출되는지에 대한 정보와 `modelAndView`가 반환 되는지도 알 수 있다.
+
+#### 스프링 인터셉터의 호출 흐름
+
+<p align="center"><img src="/img/1.png" width="80%"></p>
+
+- preHandle
+  - 컨트롤러 호출 전, 엄밀히 말하면 핸들러 어댑터 호출전에 호출된다
+  - return 값이 `boolean`으로, 응답값이 `false`인 경우 더이상 진행하지 않는다
+- postHandle
+  - 컨트롤러 호출 후에 호출된다
+- afterCompletion
+  - 뷰가 렌더링 된 이후에 호출된다
+
+#### 스프링 인터셉터의 예외 상황 처리
+
+<p align="center"><img src="/img/2.png" width="80%"></p>
+
+- preHandle
+  - 컨트롤러 호출 전에 호출 된다
+- postHandle
+  - 컨트롤러에서 예외가 발생한 경우 **호출되지 않는다**
+- afterCompletion
+  - 예외가 발생해도 항상 호출된다.
+  - `ex` 파라미터에 어떤 예외인지가 포함해서 호출된다
