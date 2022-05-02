@@ -23,4 +23,76 @@
      - `컨트롤러(response.sendError) -> 인터셉터 -> 서블릿 -> 필터 -> WAS(sendError 호출 기록 확인)`
      - 서블릿 컨테이너는 사용자에게 보여주기 전에 `sendError()`가 호출되었는지 확인하고, 오류코드에 맞추어 오류페이지를 보여준다.
 
-즉, `Exception`이 발생하면 무조건 500 에러, 내가 직접 `sendError`를 통해 처리를 했으면 오류코드에 맞춰 페이지가 등장한다.
+즉, `Exception`이 발생하면 무조건 500  에러, 내가 직접 `sendError`를 통해 처리를 했으면 오류코드에 맞춰 페이지가 등장한다.
+
+### 오류 페이지의 작동 원리
+
+```text
+예외 발생 흐름
+컨트롤러(예외 발생, sendError) -> 인터셉터 -> 서블릿 -> 필터 -> WAS
+```
+
+WAS는 예외가 발생하면, 해당 예외를 처리하는 오류 페이지(ErrorPage) 정보를 확인한다
+- `new ErrorPage(HttpStatus.NOT_FOUND, "/error-page/404")`
+
+```text
+오류페이지 요청 흐름
+WAS /error-page/404 다시 요청 -> 필터 -> 서블릿 -> 인터셉터 -> 컨트롤러(/error-page/404) -> View
+```
+- 이처럼 해당 예외 페이지가 존재한다면, WAS에서 오류페이지를 출력하기 위해 다시 요청이 진행된다.
+- 중요한건 HTTP 요청이 생긴게 아닌, 서버 내부에서 오류페이지를 찾기 위해 추가적인 호출을 진행하는 것
+  - 따라서, 웹브라우저(클라이언트)는 이것을 인지하지 못한다
+- WAS는 단순히 오류 페이지를 호출하는 것 뿐만 아니라, 오류 정보 또한 넘겨준다
+  - `request`의 `attribute`를 통해
+
+### 서블릿 예외처리 - 필터
+
+```text
+예외 발생 흐름과 페이지 요청 흐름
+컨트롤러(예외 발생, sendError) -> 인터셉터 -> 서블릿 -> 필터 -> WAS
+WAS /error-page/404 다시 요청 -> 필터 -> 서블릿 -> 인터셉터 
+   -> 컨트롤러(/error-page/404) -> View
+```
+위와 같이 오류가 발생하면 오류페이지 호출을 위해 WAS 내부에서 다시한번 호출이 발생한다.
+이때, 필터, 서블릿, 인터셉터도 다시 호출되는 상황이 발생하는데, 로그인 인증과 같은 처리는 이미 완료했기에 추가적인 호출은 비효율적이게 된다.  
+따라서, 클라이언트로부터 발생한 `정상 요청`인지, 오류페이지 출력을 위한 `내부 요청`인지 구별할 수 있어야한다.
+
+- DispatcherType
+  - 이런 경우를 위해 `dispatcherType()`라는 옵션이 제공된다.
+  - 고객이 요청하게 되면 `dispatcherType`이 `REQUEST`
+  - 내부 에러에 따라 호출되게 되면 `dispatcherType`은 `ERROR`
+  - 외의 Type
+    - `FORWARD`: 서블릿에서 다른 서블릿이나 JSP를 호출할 때(`RequestDispatcher.forward()`)
+    - `INCLUDE`: 서비릇에서 다른 서블릿이나 JSP의 결과를 포함할 때(`RequestDispatcher.include()`)
+    - `ASYNC`: 서블릿 비동기 호출
+  - 즉, 클라이언트의 요청이 있는 경우에만 필터를 적용하고 싶다면, `FilterRegistrationBean.setDispatcherType`에 `REQUEST`만을 지정해준다.
+    - 디폴트가 `REQUEST`
+
+### 서블릿 예외처리 - 인터셉터
+
+```java
+class WebConfig implements WebMvcConfigurer {
+  @Override
+  public void addInterceptors(InterceptorRegistry registry) {
+    registry.addInterceptor(new LogInterceptor())
+            .order(1)
+            .addPathPatterns("/**")
+            .excludePathPatterns("/css/**", "/error", "*.ico", "/error-page/**");
+  }
+}
+```
+스프링 인터셉터의 경우 따로 `dispatcherType`을 지정하는 것이 아닌,
+인터셉터를 등록할 때 `excludePatterns`에서 `error-page의 경로`를 넣어 중복 호출을 피할 수 있다.
+
+### 필터, 인터셉터 예외처리 정리
+
+- 필터는 DispatchType 으로 중복 호출 제거 ( dispatchType=REQUEST )
+- 인터셉터는 경로 정보로 중복 호출 제거( excludePathPatterns("/error-page/**") )
+
+```text
+1. WAS(/error-ex, dispatchType=REQUEST) -> 필터 -> 서블릿 -> 인터셉터 -> 컨트롤러
+2. WAS(여기까지 전파) <- 필터 <- 서블릿 <- 인터셉터 <- 컨트롤러(예외발생)
+3. WAS 오류 페이지 확인
+4. WAS(/error-page/404, dispatchType=ERROR) -> 필터(x) -> 서블릿 -> 인터셉터(x) ->
+   컨트롤러(/error-page/404) -> View
+```
