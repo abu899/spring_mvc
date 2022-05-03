@@ -96,3 +96,49 @@ class WebConfig implements WebMvcConfigurer {
 4. WAS(/error-page/404, dispatchType=ERROR) -> 필터(x) -> 서블릿 -> 인터셉터(x) ->
    컨트롤러(/error-page/404) -> View
 ```
+
+### 스프링 부트의 오류페이지
+
+지금까지 예외 처리 페이지를 만들기 위해서 다음과 같은 복잡한 과정을 거쳤다.
+- `WebServerCustomizer`를 만들고
+- 예외 종류에 따라서 `ErrorPage`를 추가하고
+- 예외 처리용 컨트롤러 `ErrorPageController`를 만듬
+
+스프링 부트에서는 개발자는 오류 페이지만 리소스에 추가해주면 된다
+- 이때 `/error`라는 경로로 기본 오류 페이지를 설정
+- 이외의 `ErrorPage` 및 `BasicErrorController`등은 스프링 부트가 자동으로 등록한다
+
+스프링 `BasicErrorController`가 제공하는 정보
+```text
+timestamp: Fri Feb 05 00:00:00 KST 2021
+status: 400
+error: Bad Request
+exception: org.springframework.validation.BindException
+trace: 예외 trace
+message: Validation failed for object='data'. Error count: 1
+errors: Errors(BindingResult)
+path: 클라이언트 요청 경로 (`/hello`)
+```
+하지만 모든 정보를 사용자에게 보여줄 필요는 없고 필요한 정보만 간단하게 전달하는게 낫다
+
+---
+
+## API 예외처리
+
+HTML 페이지의 경우 4xx, 5xx 같은 오류페이지를 제공하면 되지만, API의 경우 오류 상황에 맞는 오류 응답
+스펙을 정하고, JSON을 데이터를 전달해야한다.
+
+- 현재 API를 호출해서 정상작동을 하면 JSON 응답이 오지만, 에러가 발생하면 우리가 미리 만들어둔 오류페이지 HTML이 반환된다.
+- 하지만, API 예외처리에서는 JSON 에러가 반환되길 기대하며, 웹브라우저가 아니면 HTML을 받아도 할 수 있는 것이 없다.
+
+### 스프링 부트 기본 오류 처리
+
+`BasicErrorController`를 사용한 스프링 부트 기본 오류 처리.
+
+- 기본적으로 `BasicErrorController`를 사용하면, `Accept`에 따라 받을 수 있는 에러가 달라진다
+  - `HTML`인 경우는 `ModelAndView`로, 그 이외의 경우 `ResponseEntity`로 디폴트 에러를 받게된다.
+  - `BasicErrorController` 내 `errorHtml()`과 `error()`가 호출된다
+- `BasicErrorController`는 HTML 페이지를 제공하는 경우에는 편리하지만, API는 상황이 조금 다르다
+  - API, 각각의 컨트롤러나 예외마다 다른 응답 결과를 출력해야하는 경우가 있기 때문이다.
+  - 결과적으로 API 예외는 세밀하고 복잡하기에 `BasicErrorController`는 HTML 화면을 처리할 때만 사용하고,
+  API 오류는 `@ExceptionHandler`를 사용하는게 더 나은 방법이다.
