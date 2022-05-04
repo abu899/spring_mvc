@@ -142,3 +142,38 @@ HTML 페이지의 경우 4xx, 5xx 같은 오류페이지를 제공하면 되지�
   - API, 각각의 컨트롤러나 예외마다 다른 응답 결과를 출력해야하는 경우가 있기 때문이다.
   - 결과적으로 API 예외는 세밀하고 복잡하기에 `BasicErrorController`는 HTML 화면을 처리할 때만 사용하고,
   API 오류는 `@ExceptionHandler`를 사용하는게 더 나은 방법이다.
+
+### HandlerExceptionResolver
+
+<p align="center"><img src="/img/1.png" width="80%"></p>
+
+<p align="center"><img src="/img/2.png" width="80%"></p>
+
+스프링 MVC는 컨트롤러 밖으로 예외가 던져진 경우, 예외를 해결하고 새로 정의할 수 있는 방법을 제공한다.
+
+- 활용
+  - 예외를 `response.sendError(xxx)` 호출로 변경해서 상태 코드에 따른 오류 처리를 하도록 위임
+    - `sendError` 대신, response의 데이터를 넣어서 처리하면 서블릿 컨테이너까지 에러가 전달되지 않게 할 수 있다.
+    - 즉, `ExceptionResolver`를 사용하면 `예외가 발생해도 정상 흐름으로 변경`시킬 수 있는 것이 핵심
+    - `UserHandlerExceptionResolver` 참조
+  - 뷰 템플릿 처리
+    - ModelAndView를 채워서 예외에 따른 오류 화면을 렌더링해서 제공
+  - API 응답 처리
+    - `response.getWriter().println(xxx)`처럼 HTTP 응답 바디에 직접 데이터를 넣어주는 것도 가능하다.
+    - JSON으로 응답하면 API 응답처리 또한 가능하다
+
+> WebConfig를 등록할 때, `configureHandlerExceptionResolver`를 사용하면 스프링이 기본으로 등록하는
+> `ExceptionResolver`가 제거되므로 `extendHandlerExcpetionResolver`를 사용하자.
+
+### 스프링이 제공하는 ExceptionResolver
+
+스프링 부트는 기본적으로 `ExceptionResolver`를 제공하며 `HandlerExceptionReloverComposite`에 다음 순서로 등록한다
+
+1. `ExceptionHandlerExceptionResolver`
+   - `@ExceptionHandler`를 처리한다
+   - API 예외처리는 대부분 이 기능으로 해결한다
+2. `ResopnseStatusExceptionResolver`
+   - HTTP 상태코드를 지정해준다
+   - ex) `@ResponseStatus(value = HttpStatus.NO_FOUND)`, `BadRequestException` 참조
+3. `DefaultHandlerExceptionResolver` -> 우선순위가 가장 낮다
+   - 스프링 내부에서 발생하는 기본 예외를 처리한다
