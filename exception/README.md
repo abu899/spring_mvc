@@ -172,8 +172,59 @@ HTML 페이지의 경우 4xx, 5xx 같은 오류페이지를 제공하면 되지�
 1. `ExceptionHandlerExceptionResolver`
    - `@ExceptionHandler`를 처리한다
    - API 예외처리는 대부분 이 기능으로 해결한다
-2. `ResopnseStatusExceptionResolver`
+2. `ResponseStatusExceptionResolver`
    - HTTP 상태코드를 지정해준다
    - ex) `@ResponseStatus(value = HttpStatus.NO_FOUND)`, `BadRequestException` 참조
+   - `messages.properties`를 이용해 `reason`을 코드화 할 수 있다
+   - 또한 `ResponseStatusException`에도 동작한다
 3. `DefaultHandlerExceptionResolver` -> 우선순위가 가장 낮다
    - 스프링 내부에서 발생하는 기본 예외를 처리한다
+   - 대표적으로 타입이 맞지 않으면 내부에서 `TypeMismatchException`이 발생한다
+
+### ExceptionHandlerExceptionResolver
+
+웹 브라우저에서 HTML 화면을 제공할 떄는 `BasicErrorController`를 사용하는게 편하다.
+하지만, API는 같은 예외라도 컨트롤러에 따라 예외 응답을 다르게 내려주어야 할 수 있다.
+
+- API 예외 처리에서 어려운 점
+  - `HandlerExceptionResolver`는 `ModelAndView`를 반환해야 했다.
+  - API 응답을 위해선 `HttpServletResponse`에 직접 응답 데이터를 넣어줘야한다
+    - `UserHandlerExceptionResolver` 참조
+  - 특정 컨트롤러에서 발생하는 예외를 별도로 처리하기 어렵다
+- `@ExceptionHandler`
+  - `@ExceptionHandler` 어노테이션을 선언하고, `해당 컨트롤러`에서 처리하고 싶은 예외를 지정해준다
+  - 지정한 예외 또는 그 예외의 자식 클래스는 모두 잡을 수 있다
+  - 다양한 파라미터와 응답을 제공한다 -> [Link](https://docs.spring.io/spring-framework/docs/current/reference/html/web.html#mvc-ann-exceptionhandler-args)
+    
+`@ExceptionHandler`의 실행의 흐름
+
+1. 컨트롤러를 호출한 결과 어떤 예외 발생해 컨트롤러 밖으로 던져진다.
+2. 예외가 발생했으로 `ExceptionResolver`가 작동하고, 가장 우선순위가 높은 `ExceptionHandlerExceptionResolver`가 실행된다.
+3. `ExceptionHandlerExceptionResolver`는 해당 컨트롤러에 발생한 예외를 처리할 `@ExceptionHandler`가 있는지 확인한다.
+4. `@RestController` 이므로  HTTP 컨버터가 사용되고, 응답이 JSON으로 반환된다.
+
+> 만약 다른 컨트롤러에도 똑같이 적용하고 싶으면 복사해서 붙여넣기를 해야할까?
+
+### @ControllerAdvice
+
+`@ExceptionHandler`를 사용하면 예외를 간단히 처리가능하지만, 정상코드와 예외 처리 코드가 하나의 컨트롤러에 섞이게된다.
+이때 `@ControllerAdvice`와 `@RestControllerAdvice`를 사용하면 이를 분리할 수 있다.
+추가적으로 컨트롤러 간 공통으로 사용하고 싶은 부분 또한 복사없이 적용할 수 있다.
+
+- 기본적으로 `@ControllerAdvice`는 지정한 여러 컨트롤러에 `@ExceptionHandler`, `@InitBinder` 기능을 부여해준다
+  - 대상을 지정하지 않으면 모든 컨트롤러에 적용된다
+
+대상 컨트롤러 지정 방법 -> [공식문서 Link](https://docs.spring.io/spring-framework/docs/current/reference/html/web.html#mvc-anncontroller-advice)
+```text
+// Target all Controllers annotated with @RestController
+@ControllerAdvice(annotations = RestController.class)
+public class ExampleAdvice1 {}
+
+// Target all Controllers within specific packages
+@ControllerAdvice("org.example.controllers")
+public class ExampleAdvice2 {}
+
+// Target all Controllers assignable to specific classes
+@ControllerAdvice(assignableTypes = {ControllerInterface.class,AbstractController.class})
+public class ExampleAdvice3 {}
+```
