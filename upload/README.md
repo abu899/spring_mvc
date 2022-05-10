@@ -26,3 +26,10 @@ spring.servlet.multipart.max-request-size=10MB
 ```
 - max-file-size: 파일당 최대 크기
 - max-request-size: 멀티파트 요청된 파일의 총 크기
+
+## Spring File upload
+
+스프링은 `MultiPartFile`을 지원해 멀티파트를 보다 간단히 사용할 수 있다
+
+- `@RequestParam MultipartFile file`
+  - 업로드하는 Form의 이름에 맞춰 `@RequestParam`을 적용하면 된다
